@@ -7,37 +7,41 @@ This module contains the main logic to search for usernames at social
 networks.
 """
 
+import sys
+
+try:
+    from sherlock_project.__init__ import import_error_test_var # noqa: F401
+except ImportError:
+    print("Did you run Sherlock with `python3 sherlock/sherlock.py ...`?")
+    print("This is an outdated method. Please see https://sherlockproject.xyz/installation for up to date instructions.")
+    sys.exit(1)
+
 import csv
 import signal
 import pandas as pd
 import os
 import re
-import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from json import loads as json_loads
 from time import monotonic
 
 import requests
+from requests_futures.sessions import FuturesSession
 
-# Removing __version__ here will trigger update message for users
-# Do not remove until ready to trigger that message
-# When removed, also remove all the noqa: E402 comments for linting
-__version__ = "0.14.4"
-del __version__
-
-from .__init__ import ( # noqa: E402
+from sherlock_project.__init__ import (
     __longname__,
-    __version__
+    __shortname__,
+    __version__,
+    forge_api_latest_release,
 )
 
-from requests_futures.sessions import FuturesSession    # noqa: E402
-from torrequest import TorRequest                       # noqa: E402
-from sherlock.result import QueryStatus                 # noqa: E402
-from sherlock.result import QueryResult                 # noqa: E402
-from sherlock.notify import QueryNotify                 # noqa: E402
-from sherlock.notify import QueryNotifyPrint            # noqa: E402
-from sherlock.sites import SitesInformation             # noqa: E402
-from colorama import init                               # noqa: E402
-from argparse import ArgumentTypeError                  # noqa: E402
+from sherlock_project.result import QueryStatus
+from sherlock_project.result import QueryResult
+from sherlock_project.notify import QueryNotify
+from sherlock_project.notify import QueryNotifyPrint
+from sherlock_project.sites import SitesInformation
+from colorama import init
+from argparse import ArgumentTypeError
 
 
 class SherlockFuturesSession(FuturesSession):
@@ -168,6 +172,7 @@ def sherlock(
     query_notify: QueryNotify,
     tor: bool = False,
     unique_tor: bool = False,
+    dump_response: bool = False,
     proxy=None,
     timeout=60,
 ):
@@ -206,6 +211,18 @@ def sherlock(
     query_notify.start(username)
     # Create session based on request methodology
     if tor or unique_tor:
+        try:
+            from torrequest import TorRequest  # noqa: E402
+        except ImportError:
+            print("Important!")
+            print("> --tor and --unique-tor are now DEPRECATED, and may be removed in a future release of Sherlock.")
+            print("> If you've installed Sherlock via pip, you can include the optional dependency via `pip install 'sherlock-project[tor]'`.")
+            print("> Other packages should refer to their documentation, or install it separately with `pip install torrequest`.\n")
+            sys.exit(query_notify.finish())
+
+        print("Important!")
+        print("> --tor and --unique-tor are now DEPRECATED, and may be removed in a future release of Sherlock.")
+
         # Requests using Tor obfuscation
         try:
             underlying_request = TorRequest()
@@ -457,6 +474,34 @@ def sherlock(
             raise ValueError(
                 f"Unknown Error Type '{error_type}' for " f"site '{social_network}'"
             )
+        
+        if dump_response:
+            print("+++++++++++++++++++++")
+            print(f"TARGET NAME   : {social_network}")
+            print(f"USERNAME      : {username}")
+            print(f"TARGET URL    : {url}")
+            print(f"TEST METHOD   : {error_type}")
+            try:
+                print(f"STATUS CODES  : {net_info['errorCode']}")
+            except KeyError:
+                pass
+            print("Results...")
+            try:
+                print(f"RESPONSE CODE : {r.status_code}")
+            except Exception:
+                pass
+            try:
+                print(f"ERROR TEXT    : {net_info['errorMsg']}")
+            except KeyError:
+                pass
+            print(">>>>> BEGIN RESPONSE TEXT")
+            try:
+                print(r.text)
+            except Exception:
+                pass
+            print("<<<<< END RESPONSE TEXT")
+            print("VERDICT       : " + str(query_status))
+            print("+++++++++++++++++++++")
 
         # Notify caller about results of query.
         result = QueryResult(
@@ -523,7 +568,7 @@ def main():
     parser.add_argument(
         "--version",
         action="version",
-        version=f"Sherlock v{__version__}",
+        version=f"{__shortname__} v{__version__}",
         help="Display version information and dependencies.",
     )
     parser.add_argument(
@@ -594,6 +639,13 @@ def main():
         dest="proxy",
         default=None,
         help="Make requests over a proxy. e.g. socks5://127.0.0.1:1080",
+    )
+    parser.add_argument(
+        "--dump-response",
+        action="store_true",
+        dest="dump_response",
+        default=False,
+        help="Dump the HTTP response to stdout for targeted debugging.",
     )
     parser.add_argument(
         "--json",
@@ -671,17 +723,14 @@ def main():
 
     # Check for newer version of Sherlock. If it exists, let the user know about it
     try:
-        r = requests.get(
-            "https://raw.githubusercontent.com/sherlock-project/sherlock/master/sherlock/__init__.py"
-        )
+        latest_release_raw = requests.get(forge_api_latest_release).text
+        latest_release_json = json_loads(latest_release_raw)
+        latest_remote_tag = latest_release_json["tag_name"]
 
-        remote_version = str(re.findall('__version__ *= *"(.*)"', r.text)[0])
-        local_version = __version__
-
-        if remote_version != local_version:
+        if latest_remote_tag[1:] != __version__:
             print(
-                "Update Available!\n"
-                + f"You are running version {local_version}. Version {remote_version} is available at https://github.com/sherlock-project/sherlock"
+                f"Update available! {__version__} --> {latest_remote_tag[1:]}"
+                f"\n{latest_release_json['html_url']}"
             )
 
     except Exception as error:
@@ -783,6 +832,7 @@ def main():
             query_notify,
             tor=args.tor,
             unique_tor=args.unique_tor,
+            dump_response=args.dump_response,
             proxy=args.proxy,
             timeout=args.timeout,
         )

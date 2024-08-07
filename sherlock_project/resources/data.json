@@ -1,4 +1,5 @@
 {
+  "$schema": "data.schema.json",
   "1337x": {
     "errorMsg": [
       "<title>Error something went wrong.</title>",
@@ -89,12 +90,6 @@
     "url": "https://www.airliners.net/user/{}/profile/photos",
     "urlMain": "https://www.airliners.net/",
     "username_claimed": "yushinlin"
-  },
-  "Alik.cz": {
-    "errorType": "status_code",
-    "url": "https://www.alik.cz/u/{}",
-    "urlMain": "https://www.alik.cz/",
-    "username_claimed": "julian"
   },
   "All Things Worn": {
     "errorMsg": "Sell Used Panties",
@@ -597,7 +592,7 @@
     "url": "https://cyberdefenders.org/p/{}",
     "urlMain": "https://cyberdefenders.org/",
     "username_claimed": "mlohn"
-},
+  },
   "DEV Community": {
     "errorType": "status_code",
     "regexCheck": "^[a-zA-Z][a-zA-Z0-9_-]*$",
@@ -637,6 +632,24 @@
     "errorType": "status_code",
     "url": "https://www.discogs.com/user/{}",
     "urlMain": "https://www.discogs.com/",
+    "username_claimed": "blue"
+  },
+  "Discord": {
+    "errorType": "message",
+    "url": "https://discord.com",
+    "urlMain": "https://discord.com/",
+    "urlProbe": "https://discord.com/api/v9/unique-username/username-attempt-unauthed",
+    "errorMsg": [
+      "{\"taken\":false}",
+      "The resource is being rate limited"
+    ],
+    "request_method": "POST",
+    "request_payload": {
+      "username": "{}"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    },
     "username_claimed": "blue"
   },
   "Discuss.Elastic.co": {
@@ -1245,7 +1258,7 @@
   },
   "LeetCode": {
     "errorType": "status_code",
-    "url": "https://leetcode.com/u/{}",
+    "url": "https://leetcode.com/{}",
     "urlMain": "https://leetcode.com/",
     "username_claimed": "blue"
   },
@@ -2747,12 +2760,6 @@
     "urlMain": "https://uid.me/",
     "username_claimed": "blue"
   },
-  "Warframe Market": {
-    "errorType": "status_code",
-    "url": "https://warframe.market/profile/{}",
-    "urlMain": "https://warframe.market/",
-    "username_claimed": "AlexJuli"
-  },
   "wiki.vg": {
     "errorType": "status_code",
     "url": "https://wiki.vg/User:{}",
@@ -2772,11 +2779,5 @@
     "url": "https://www.znanylekarz.pl/{}",
     "urlMain": "https://znanylekarz.pl",
     "username_claimed": "janusz-nowak"
-  },
-  "One.lt": {
-    "errorType": "status_code",
-    "url": "https://www.one.lt/{}",
-    "urlMain": "https://www.one.lt",
-    "username_claimed": "lietuvis"
   }
 }
